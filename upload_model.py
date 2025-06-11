@@ -1,50 +1,69 @@
 import streamlit as st
 import requests
 
-st.set_page_config(page_title="💬 Local LLM Chat", layout="centered")
-# this is the hypthothetical title used not the real but used in the code
+# Set page layout
+st.set_page_config(page_title="AhmadBot", page_icon="🧠", layout="centered")
 
-st.title("🧠 Chat with Local Model (LM Studio)")
+# Title and slogan
+st.markdown("""
+    <div style="text-align: center; padding: 1rem 0;">
+        <h1 style="margin-bottom: 0;">AhmadBot</h1>
+        <p style="color: gray; font-size: 1.1rem;">Your Service. My Duty.</p>
+    </div>
+""", unsafe_allow_html=True)
 
-# Initialize message history
+# Session state for chat messages and input
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "system", "content": "You are a helpful assistant."}
+        {"role": "assistant", "content": "Hello! I'm AhmadBot. How can I help you today?"}
     ]
 
-# Display chat history
-for msg in st.session_state.messages[1:]:  # skip system prompt
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+# --- Input handling using a form (ENTER key only) ---
+with st.form("chat_form", clear_on_submit=True):
+    user_input = st.text_input("Type your message:", placeholder="Type and press Enter", label_visibility="collapsed")
+    submitted = st.form_submit_button("Enter")
 
-# Get user input
-if prompt := st.chat_input("Ask me anything..."):
-    # Append user message
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+# If user submitted a message
+if submitted and user_input.strip():
+    # Append user message first
+    st.session_state.messages.append({"role": "user", "content": user_input.strip()})
 
-    # Prepare the payload
-    payload = {
-        "model": "local-model",  # LM Studio doesn’t care about this name
-        "messages": st.session_state.messages,
-        "temperature": 0.7,
+    # Make the API call
+    API_URL = "https://herh2ukwm5ajf4u5ntrgdici.agents.do-ai.run/api/v1/chat/completions"
+    API_KEY = "Lheal7C39gJcxf6a0QqkaDHa2kN0KpX4"
+    HEADERS = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
     }
 
-    # Call LM Studio’s local API
-    try:
-        res = requests.post(
-            "http://127.0.0.1:1234/v1/chat/completions",
-            headers={"Content-Type": "application/json"},
-            json=payload,
-            timeout=60
-        )
-        res.raise_for_status()
-        reply = res.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        reply = f"❌ Error talking to model: {e}"
+    payload = {
+        "messages": st.session_state.messages,
+        "provide_citations": False
+    }
 
-    # Show model reply
+    with st.spinner("AhmadBot is typing..."):
+        response = requests.post(API_URL, headers=HEADERS, json=payload)
+
+    if response.status_code == 200:
+        reply = response.json()["choices"][0]["message"]["content"]
+    else:
+        reply = "⚠️ Error: " + response.text
+
+    # Append bot response after user message
     st.session_state.messages.append({"role": "assistant", "content": reply})
-    with st.chat_message("assistant"):
-        st.markdown(reply)
+
+# --- Render chat history ---
+for msg in st.session_state.messages:
+    is_user = msg["role"] == "user"
+    icon = "🧑" if is_user else "🤖"
+    align = "flex-end" if is_user else "flex-start"
+    bg_color = "#e6f7ff" if is_user else "#f5f5f5"
+    label = "You" if is_user else "AhmadBot"
+
+    st.markdown(f"""
+        <div style="display: flex; justify-content: {align}; margin: 8px 0;">
+            <div style="background: {bg_color}; padding: 10px 14px; border-radius: 10px; max-width: 75%; font-size: 1rem;">
+                <b>{icon} {label}:</b><br>{msg['content']}
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
