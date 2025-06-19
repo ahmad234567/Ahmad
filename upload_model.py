@@ -1,19 +1,29 @@
 import streamlit as st
 import requests
 from docx import Document
+import csv
+from datetime import datetime
 
+# Cache the document loading for performance
 @st.cache_data
 def load_docx(path):
     doc = Document(path)
     return "\n".join([p.text for p in doc.paragraphs])
 
-document_text = ""
+# Logging function
+def log_interaction(user_input, reply):
+    with open("chat_log.csv", "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([datetime.now().isoformat(), user_input, reply])
+
+# Load document once
 try:
     document_text = load_docx("mydoc.docx")
 except Exception as e:
     st.error(f"Failed to load document: {e}")
+    document_text = ""
 
-st.set_page_config(page_title="AhmadBot", page_icon="🧠", layout="centered")
+st.set_page_config(page_title="AhmadBot", page_icon="🧠")
 
 if "messages" not in st.session_state:
     st.session_state.messages = [
@@ -34,6 +44,7 @@ Use the following document to answer the user's question:
 User: {user_input}
 Answer:
 """
+
     API_URL = "https://herh2ukwm5ajf4u5ntrgdici.agents.do-ai.run/api/v1/chat/completions"
     API_KEY = "Lheal7C39gJcxf6a0QqkaDHa2kN0KpX4"
     HEADERS = {
@@ -54,7 +65,9 @@ Answer:
         reply = "⚠️ Error: " + response.text
 
     st.session_state.messages.append({"role": "assistant", "content": reply})
+    log_interaction(user_input.strip(), reply)
 
+# Display chat messages
 for msg in st.session_state.messages:
     is_user = msg["role"] == "user"
     icon = "🧑" if is_user else "🤖"
