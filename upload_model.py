@@ -146,4 +146,9 @@ User: {user_input}
 Answer:
 """
     return model.generate(prompt)
+try:
+    document_text = load_docx("mydoc.docx")
+except Exception as e:
+    st.error(f"Failed to load document: {e}")
+    document_text = ""
 
