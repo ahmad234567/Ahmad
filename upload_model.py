@@ -18,7 +18,7 @@ def log_interaction(user_input, reply):
 
 # Load document once
 try:
-    document_text = load_docx("mydoc.docx")
+    document_text = load_docx("Request for Proposal.docx")
 except Exception as e:
     st.error(f"Failed to load document: {e}")
     document_text = ""
